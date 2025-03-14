@@ -1,0 +1,6 @@
+name,stock_A,stock_B,stock_C,stock_D,min_stock_A,min_stock_B,min_stock_C,min_stock_D,coordinates
+Hospital A,200,150,200,150,100,20,100,100,"52.5, 13.4"
+Hospital B,80,20,200,150,100,100,100,100,"52.6, 13.5"
+Hospital C,200,150,200,150,100,100,100,100,"52.7, 13.6"
+Hospital D,200,150,200,150,100,100,100,100,"52.8, 13.7" 
+
