@@ -1,17 +1,23 @@
 import tkinter as tk
+from grafs import GraphGenerator  # Zorg ervoor dat deze import goed is
+from tkinter import messagebox
 from home_screen import HomeScreen
 import csv
 from itertools import permutations, combinations
 from math import radians, sin, cos, sqrt, atan2
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 class SupplyChainSimulation:
     def __init__(self, frame):
         self.frame = frame
-        self.hospitals = load_hospitals()
-        self.suppliers = load_suppliers()
-        self.simulation_result_label = None  
-        self.return_button = None  
+        self.hospitals = load_hospitals()  # Assuming this loads the hospitals
+        self.suppliers = load_suppliers()  # Assuming this loads the suppliers
+        self.simulation_result_label = None
+        self.return_button = None
         self.solutions_label = None
+        self.graph_frame = None  # To hold the graph
 
     def create_simulation_screen(self):
         """Create the simulation screen content."""
@@ -41,7 +47,7 @@ class SupplyChainSimulation:
         self.hospital_selector = tk.StringVar()
         hospital_names = [hospital.name for hospital in self.hospitals]
         self.hospital_selector.set(hospital_names[0])  # Set default to the first hospital
-        hospital_dropdown = tk.OptionMenu(self.simulation_frame, self.hospital_selector, *hospital_names)
+        hospital_dropdown = tk.OptionMenu(self.simulation_frame, self.hospital_selector, *hospital_names, command=self.update_graph)
         hospital_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
         # Left and Right frames for the problems and solutions with borders
@@ -53,7 +59,10 @@ class SupplyChainSimulation:
         self.middle_frame = tk.Frame(self.simulation_frame)  # Middle frame for the simulation button
         self.middle_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
 
-    
+        # Create a frame for the hospital graphs (between left and right)
+        self.graph_frame = tk.Frame(self.simulation_frame)
+        self.graph_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
+
         # Simulate supply chain button (moved to middle bottom)
         simulate_button = tk.Button(self.simulation_frame, text="Simulate Supply Chain", command=self.simulate_supply, font=("Helvetica", 12))
         simulate_button.grid(row=3, column=1, pady=20, sticky="nsew")
@@ -70,6 +79,62 @@ class SupplyChainSimulation:
         self.solutions_label = tk.Label(self.right_frame, text="Solutions:", font=("Helvetica", 12, "bold"))
         self.solutions_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
+        self.frame.protocol("WM_DELETE_WINDOW", self.on_close)
+        
+    def on_close(self):
+        """Handle the window close event to cleanly exit the program."""
+        print("Closing the application...")
+        # Here you can add additional cleanup steps if needed
+        self.frame.quit()  # Close the tkinter window gracefully
+        self.frame.destroy()
+
+    def update_graph(self, selected_hospital_name):
+        """Update and show the graph for the selected hospital."""
+        # Find the selected hospital object
+        selected_hospital = next(hospital for hospital in self.hospitals if hospital.name == selected_hospital_name)
+
+        # Clear the previous graph in the graph_frame
+        for widget in self.graph_frame.winfo_children():
+            widget.destroy()
+
+        # Generate and display the graph for the selected hospital
+        self.display_graph(selected_hospital)
+
+    def display_graph(self, hospital):
+        """Create and display a graph for the selected hospital."""
+        # Check if there is already an existing graph and clear it before creating a new one
+        fig, ax = plt.subplots(figsize=(5, 3))
+
+        # Example: Bar chart of the hospital's stock (You can adjust this part to your product data)
+        products = list(hospital.inventory.keys())  # Dynamically fetch product names from inventory
+        stocks = [hospital.inventory.get(product, 0) for product in products]
+        min_stocks = [hospital.min_inventory.get(product, 0) for product in products]  # Get min inventory
+
+        # Set the width for the bars
+        bar_width = 0.35
+
+        # Create the bars for the stock level and min stock
+        bars1 = ax.bar([p - bar_width / 2 for p in range(len(products))], stocks, bar_width, label="Stock", color='lightblue')
+        bars2 = ax.bar([p + bar_width / 2 for p in range(len(products))], min_stocks, bar_width, label="Min Stock", color='orange')
+
+        # Set titles and labels
+        ax.set_title(f"Inventory of {hospital.name}")
+        ax.set_xlabel('Products')
+        ax.set_ylabel('Stock Level')
+
+        # Set product names on x-axis
+        ax.set_xticks(range(len(products)))
+        ax.set_xticklabels(products)
+
+        # Add the legend
+        ax.legend()
+
+        # Render the graph into the tkinter frame
+        canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
+        canvas.draw()
+
+        # Properly pack the canvas into the grid
+        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
 
     def simulate_supply(self):
         """Check hospital stock and simulate supply chain."""
@@ -89,8 +154,31 @@ class SupplyChainSimulation:
 
         self.show_return_button()
 
+    def show_return_button(self):
+        """Show the return button."""
+        self.return_button = tk.Button(self.simulation_frame, text="Return", command=self.return_to_main_screen, font=("Helvetica", 12))
+        self.return_button.grid(row=4, column=1, pady=10, sticky="nsew")
+
+    def return_to_main_screen(self):
+        """Return to the main screen."""
+        print("Returning to the main screen...")
+        # Implement the logic to go back to the main screen here.
+        pass
+
+    def return_to_home(self):
+        """Return to the home screen and refresh the simulation content."""
+        self.hospitals = load_hospitals()  # Reload hospital data
+        self.suppliers = load_suppliers()
+        self.simulation_result_label = None
+        self.return_button = None
+        self.solutions_label = None  # Remove solutions when going back
+        self.simulation_frame.destroy()
+        home_screen = HomeScreen(self.frame, self.create_simulation_screen)
+        home_screen.create_home_screen()
+
     def show_insufficient_stock_screen(self, insufficient_hospitals):
         """Show the message for insufficient stock in the left and right frames."""
+        
         # Clear any existing labels in the problems and solutions sections
         for widget in self.left_frame.winfo_children():
             widget.destroy()
@@ -129,26 +217,12 @@ class SupplyChainSimulation:
         self.simulation_result_label = tk.Label(self.right_frame, text="See solutions above.", font=("Helvetica", 10, "bold"), fg="green", justify="left")
         self.simulation_result_label.grid(row=row + 1, column=0, padx=10, pady=5, sticky="w")
 
-
-
-    def show_return_button(self):
-        """Show the return button to go back to the home screen."""
-        if not self.return_button:
-            self.return_button = tk.Button(self.simulation_frame, text="Return to Home", command=self.return_to_home, font=("Helvetica", 12))
-            self.return_button.grid(row=4, column=1, pady=20, sticky="nsew")
-
-    def return_to_home(self):
-        """Return to the home screen and refresh the simulation content."""
-        self.hospitals = load_hospitals()  # Reload hospital data
-        self.suppliers = load_suppliers()
-        self.simulation_result_label = None
-        self.return_button = None
-        self.solutions_label = None  # Remove solutions when going back
-        self.simulation_frame.destroy()
-        home_screen = HomeScreen(self.frame, self.create_simulation_screen)
-        home_screen.create_home_screen()
-
-
+    def close_window(self):
+        """Afsluiten van het venster en stoppen van de applicatie."""
+        print("Afsluiten van de applicatie...")
+        self.frame.quit()  # Dit zorgt ervoor dat de tkinter loop stopt
+        self.frame.destroy()  # Dit sluit het venster volledig af
+        exit()  # Dit zorgt ervoor dat ook de terminal wordt afgesloten
 
 class Hospital:
     def __init__(self, name, inventory, min_inventory, coordinates):
