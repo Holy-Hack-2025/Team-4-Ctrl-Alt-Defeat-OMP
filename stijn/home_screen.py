@@ -11,21 +11,20 @@ class HomeScreen:
         self.filename = "normal"
 
     def create_home_screen(self):
-        self.home_frame = tk.Frame(self.root)
+        self.home_frame = tk.Frame(self.root, bg="#A2D4CD")
         self.home_frame.grid(row=0, column=0, padx=10, pady=20, sticky="nsew")
 
         # Title - Centered
-        title_label = tk.Label(self.home_frame, text="Welcome to the Healthcare Supply Chain Simulation",
-                               font=("Helvetica", 16, "bold"))
+        title_label = tk.Label(self.home_frame, text="VitalLink",
+                               font=("Verdana", 35, "bold"), bg="#A2D4CD")
         title_label.grid(row=0, column=0, padx=10, pady=20, columnspan=2, sticky="nsew")
 
         # Description - Centered
         description_text = (
-            "This application simulates the distribution of medicines between hospitals and suppliers.\n"
-            "Click 'Start Simulation' to begin."
+            "A SMARTER, MORE COLLABORATIVE HEALTHCARE ECOSYSTEM."
         )
-        description_label = tk.Label(self.home_frame, text=description_text, font=("Helvetica", 12), justify="center",
-                                     wraplength=400)
+        description_label = tk.Label(self.home_frame, text=description_text, font=("Helvetica", 18), justify="center",
+                                     wraplength=400, bg="#A2D4CD")
         description_label.grid(row=1, column=0, padx=10, pady=20, columnspan=2, sticky="nsew")
 
         # Start Simulation button
@@ -78,9 +77,9 @@ class HomeScreen:
     def load_csv_data(self, entity_type):
         """Loads CSV data for the selected entity type."""
         if entity_type == "hospital":
-            self.file_path = fr"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\henry\other_required_files\Hospitals.csv"
+            self.file_path = fr"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Hospitals.csv"
         else:
-            self.file_path = fr"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\henry\other_required_files\Suppliers.csv"
+            self.file_path = fr"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Suppliers.csv"
 
         try:
             self.data = pd.read_csv(self.file_path)
@@ -122,7 +121,7 @@ class HomeScreen:
         """Window to edit CSV data dynamically."""
         edit_win = tk.Toplevel(self.root)
         edit_win.title("Edit Data")
-        edit_win.geometry("800x500")
+        edit_win.geometry("1200x500")
 
         frame = tk.Frame(edit_win)
         frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -155,7 +154,7 @@ class HomeScreen:
             col_index = int(col[1:]) - 1  # Convert '#1' to index 0
 
             entry_popup = tk.Toplevel(edit_win)
-            entry_popup.geometry("200x50")
+            entry_popup.geometry("200x90")
             entry_popup.title("Edit Value")
 
             tk.Label(entry_popup, text=f"Edit {columns[col_index]}:").pack()

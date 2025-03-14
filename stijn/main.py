@@ -4,6 +4,7 @@ from layout import Layout
 
 def main():
     root = tk.Tk()
+    root.config(bg="#A2D4CD")
     layout = Layout(root)
 
     # Show home screen first

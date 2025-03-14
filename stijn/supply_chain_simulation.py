@@ -23,7 +23,7 @@ class SupplyChainSimulation:
 
     def create_simulation_screen(self, data):
         """Create the simulation screen content."""
-        self.simulation_frame = tk.Frame(self.frame)
+        self.simulation_frame = tk.Frame(self.frame, bg="#A2D4CD")
         self.simulation_frame.grid(row=0, column=0, sticky="nsew")
         self.datamode = data
 
@@ -40,7 +40,7 @@ class SupplyChainSimulation:
         self.simulation_frame.grid_columnconfigure(2, weight=1)  # Right column (solutions), expandable
 
         # Title Label
-        title_label = tk.Label(self.simulation_frame, text="Supply Chain Simulation", font=("Helvetica", 16, "bold"))
+        title_label = tk.Label(self.simulation_frame, text="Supply Chain Simulation", font=("Helvetica", 16, "bold"), bg="#A2D4CD")
         title_label.grid(row=0, column=0, columnspan=3, pady=10, sticky="nsew")
 
         # Create a hospital selector dropdown
@@ -64,7 +64,7 @@ class SupplyChainSimulation:
         self.middle_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
 
         # Create a frame for the hospital graphs (between left and right)
-        self.graph_frame = tk.Frame(self.simulation_frame)
+        self.graph_frame = tk.Frame(self.simulation_frame, bg="#A2D4CD")
         self.graph_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
 
         # Simulate supply chain button (moved to middle bottom)
@@ -148,6 +148,10 @@ class SupplyChainSimulation:
 
         # Properly pack the canvas into the grid
         canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+
+        # Configure grid to make sure the canvas expands with the frame size
+        self.graph_frame.grid_rowconfigure(0, weight=1)
+        self.graph_frame.grid_columnconfigure(0, weight=1)
 
     def simulate_supply(self):
         """Check hospital stock and simulate supply chain."""
@@ -280,25 +284,42 @@ class Supplier:
         """Retourneer de beschikbare voorraad voor een bepaald product."""
         return self.inventory.get(product, 0)
 
+
+# Product mapping (Old name -> New name)
+product_mapping = {
+    "A": "Drug A",
+    "B": "Drug B",
+    "C": "Drug C",
+    "D": "Drug D",
+    "E": "Drug E"
+}
+
 # Load hospitals
 def load_hospitals(is_changed):
     """Load hospital data from a CSV file with support for multiple products dynamically."""
     if is_changed.lower() == "hypo":
-        filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\hypo.csv"
+        filename = r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\hypo.csv"
     else:
-        filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Hospitals.csv"
+        filename = r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Hospitals.csv"
+    
     hospitals = []
     try:
         with open(filename, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                # Dynamisch de producten bepalen op basis van kolomnamen
+                # Dynamically determine product keys from column names
                 product_keys = [key for key in row.keys() if key.startswith("stock_")]
                 min_product_keys = [key.replace("stock_", "min_stock_") for key in product_keys]
 
-                # Inventaris en minimum voorraad dynamisch vullen
-                inventory = {key.replace("stock_", ""): int(row[key]) for key in product_keys}
-                min_inventory = {key.replace("min_stock_", ""): int(row[key]) for key in min_product_keys}
+                # Inventory and minimum inventory filled dynamically with renaming
+                inventory = {
+                    product_mapping.get(key.replace("stock_", ""), key.replace("stock_", "")): int(row[key])
+                    for key in product_keys
+                }
+                min_inventory = {
+                    product_mapping.get(key.replace("min_stock_", ""), key.replace("min_stock_", "")): int(row[key])
+                    for key in min_product_keys
+                }
 
                 hospitals.append(Hospital(
                     name=row["name"],
@@ -314,35 +335,35 @@ def load_hospitals(is_changed):
 
 
 # Load suppliers
-def load_suppliers(filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Suppliers.csv"):
+def load_suppliers(filename=r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Suppliers.csv"):
     """Load supplier data from a CSV file."""
     suppliers = []
     try:
         with open(filename, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
+                # Mapping product names dynamically for inventory and production
+                inventory = {
+                    product_mapping.get(key.replace("stock_", ""), key.replace("stock_", "")): int(row[key])
+                    for key in ["stock_A", "stock_B", "stock_C", "stock_D", "stock_E"]
+                }
+                production = {
+                    product_mapping.get(key.replace("production_", ""), key.replace("production_", "")): int(row[key])
+                    for key in ["production_A", "production_B", "production_C", "production_D", "production_E"]
+                }
+
                 suppliers.append(Supplier(
                     name=row["name"],
-                    inventory={
-                        "A": int(row["stock_A"]),
-                        "B": int(row["stock_B"]),
-                        "C": int(row["stock_C"]),
-                        "D": int(row["stock_D"]),
-                        "E": int(row["stock_E"])  # Add product E to inventory
-                    },
-                    production={
-                        "A": int(row["production_A"]),
-                        "B": int(row["production_B"]),
-                        "C": int(row["production_C"]),
-                        "D": int(row["production_D"]),
-                        "E": int(row["production_E"])  # Add product E to production
-                    },
+                    inventory=inventory,
+                    production=production,
                     coordinates=tuple(map(float, row["coordinates"].split(", "))) 
                 ))
+
         print(f"Loaded {len(suppliers)} suppliers successfully.")  
     except FileNotFoundError:
         print(f"Error: {filename} not found.")
     return suppliers
+
 
 
 # Check hospital stock levels
@@ -441,6 +462,6 @@ def resolve_shortages_with_minimum_distance(insufficient_hospitals, hospitals, s
                     solutions.append(f"  - {source.name} supplied {amount} units at {dist:.2f} km")
 
                 avg_distance_per_unit = total_distance / shortage if shortage > 0 else 0
-                solutions.append(f"  ➡️ Average distance per unit: {avg_distance_per_unit:.2f} km/unit")
+               ## solutions.append(f"  ➡️ Average distance per unit: {avg_distance_per_unit:.2f} km/unit")
 
     return solutions

@@ -1,10 +1,7 @@
-✅ AZ Sint-Lucas Gent shortage of A resolved!
+✅ AZ Sint-Lucas Gent shortage of Drug A resolved!
   - AZ Maria Middelares supplied 50 units at 0.48 km
   - UZ Gent supplied 100 units at 18.37 km
-  ➡️ Average distance per unit: 12.40 km/unit
-✅ AZ Sint-Lucas Gent shortage of C resolved!
+✅ AZ Sint-Lucas Gent shortage of Drug C resolved!
   - AZ Maria Middelares supplied 20 units at 0.48 km
-  ➡️ Average distance per unit: 0.48 km/unit
-✅ AZ Sint-Jan Brugge shortage of A resolved!
+✅ AZ Sint-Jan Brugge shortage of Drug A resolved!
   - AZ Zeno Knokke-Heist supplied 10 units at 15.35 km
-  ➡️ Average distance per unit: 15.35 km/unit
