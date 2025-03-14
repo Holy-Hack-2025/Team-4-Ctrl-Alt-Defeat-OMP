@@ -1,7 +1,0 @@
-name,stock_A,stock_B,stock_C,stock_D,stock_E,production_A,production_B,production_C,production_D,production_E,coordinates
-Warm Surgical,150,120,0,0,50,200,180,0,0,100,"51.0256, 4.4777"
-NadiMed,200,180,0,0,70,220,200,0,0,120,"51.1285, 4.4472"
-Belgomed BV,180,160,0,0,40,210,190,0,0,90,"50.8503, 4.3517"
-Van Houdt Medical,170,150,0,0,60,200,180,0,0,110,"51.2094, 4.4116"
-Gracopa,160,140,100,80,50,190,170,110,90,80,"50.8503, 4.3517"
-Medson,190,170,0,0,90,210,190,0,0,130,"50.8503, 4.3517"
