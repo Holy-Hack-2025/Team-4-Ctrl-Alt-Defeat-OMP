@@ -1,163 +1,224 @@
-import pandas as pd
 import tkinter as tk
 from tkinter import messagebox
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import os
-import sys
+import csv
 
-# Laad de supply chain gegevens
-def load_data():
-    try:
-        with open("C:\\creativity\\Team-4-Ctrl-Alt-Defeat-OMP\\stijn\\data.csv", "r") as file:
-            return pd.read_csv(file)
-    except FileNotFoundError:
-        messagebox.showerror("Fout", "Bestand data.csv niet gevonden!")
-        return None  # Voorkom een crash
 
-# Zorg ervoor dat de applicatie correct afsluit
-def exit_application():
-    root.quit()
-    root.destroy()
-    os._exit(0)  # Kill alle processen volledig
+# Home Screen Class
+class HomeScreen:
+    def __init__(self, root, switch_to_simulation_screen_callback):
+        self.root = root
+        self.switch_to_simulation_screen_callback = switch_to_simulation_screen_callback
+        self.create_home_screen()
 
-# Functie die wordt aangeroepen als de gebruiker het kruisje rechtsboven klikt
-def on_closing():
-    exit_application()
+    def create_home_screen(self):
+        self.root.title("Healthcare Supply Chain Simulation - Home")
 
-# Simuleer verstoringen
-def simulate_stock_disturbance(df, product, factor):
-    df.loc[df['Product'] == product, 'Stock'] *= factor
-    return df
+        # Title
+        tk.Label(self.root, text="Welcome to the Healthcare Supply Chain Simulation", font=("Helvetica", 16)).grid(row=0, column=0, padx=10, pady=20, columnspan=2)
 
-def simulate_cost_disturbance(df, product, factor):
-    df.loc[df['Product'] == product, 'Productie_cost'] *= factor
-    return df
+        # Description of the application
+        description_text = (
+            "This application simulates the distribution of medicines between hospitals and suppliers.\n"
+            "It helps to manage supply chain disruptions, optimize logistics, and ensure that hospitals are "
+            "adequately supplied. Click 'Start Simulation' to begin."
+        )
+        tk.Label(self.root, text=description_text, font=("Helvetica", 12), justify="left", wraplength=400).grid(row=1, column=0, padx=10, pady=20, columnspan=2)
 
-def simulate_co2_disturbance(df, product, factor):
-    df.loc[df['Product'] == product, 'CO2_emission'] *= factor
-    return df
+        # Start Simulation button
+        start_button = tk.Button(self.root, text="Start Simulation", command=self.switch_to_simulation_screen, font=("Helvetica", 12))
+        start_button.grid(row=2, column=0, padx=10, pady=20, columnspan=2)
 
-# Bereken CO2-uitstoot
-def calculate_co2_emission(df):
-    df['Total_CO2'] = df['CO2_emission'] * df['Stock']
-    total_co2 = df['Total_CO2'].sum()
-    return df, total_co2
+    def switch_to_simulation_screen(self):
+        self.root.withdraw()  # Hide the home screen
+        self.switch_to_simulation_screen_callback()  # Call the callback to show the simulation screen
 
-# Visualiseer de trends
-def visualize_trends(df, window):
-    fig, ax = plt.subplots()
-    ax.plot(df['Product'], df['Stock'], label='Stock')
-    ax.plot(df['Product'], df['Productie_cost'], label='Kosten')
-    ax.plot(df['Product'], df['CO2_emission'], label='CO2-uitstoot')
 
-    ax.set_xlabel('Product')
-    ax.set_ylabel('Waarde')
-    ax.set_title('Gevolgen van de verstoring')
-    ax.legend()
+# Supply Chain Simulation Class
+class SupplyChainSimulation:
+    def __init__(self, root):
+        self.root = root
+        self.create_simulation_screen()
 
-    canvas = FigureCanvasTkAgg(fig, master=window)
-    canvas.draw()
-    canvas.get_tk_widget().pack()
+    def create_simulation_screen(self):
+        self.root.title("Healthcare Supply Chain Simulation")
 
-# Pas verstoring toe en ga naar volgende stap
-def apply_changes(window, step, product, factor, change_type):
-    global df  
-    if df is None:
-        return
+        # Hospital and supplier data
+        self.hospitals = load_hospitals()
+        self.suppliers = load_suppliers()
 
-    try:
-        if change_type == 'Voorraad':
-            df = simulate_stock_disturbance(df, product, factor)
-        elif change_type == 'Kosten':
-            df = simulate_cost_disturbance(df, product, factor)
-        elif change_type == 'CO2':
-            df = simulate_co2_disturbance(df, product, factor)
+        # Labels to display hospital and supplier inventories
+        self.hospital_labels = []
+        self.supplier_labels = []
+
+        # Create hospital inventory labels
+        tk.Label(self.root, text="Hospital Inventory", font=("Helvetica", 12)).grid(row=0, column=0, padx=10, pady=5)
+        for idx, hospital in enumerate(self.hospitals):
+            label = tk.Label(self.root, text=f"{hospital.name}: A = {hospital.inventory['A']}, B = {hospital.inventory['B']}")
+            label.grid(row=idx + 1, column=0, padx=10, pady=5)
+            self.hospital_labels.append([label])
+
+        # Create supplier inventory labels
+        tk.Label(self.root, text="Supplier Inventory", font=("Helvetica", 12)).grid(row=0, column=1, padx=10, pady=5)
+        for idx, supplier in enumerate(self.suppliers):
+            label = tk.Label(self.root, text=f"{supplier.name}: A = {supplier.inventory['A']}, B = {supplier.inventory['B']}")
+            label.grid(row=idx + 1, column=1, padx=10, pady=5)
+            self.supplier_labels.append([label])
+
+        # Label for transfer messages
+        self.transfer_message_label = tk.Label(self.root, text="", font=("Helvetica", 10), wraplength=400)
+        self.transfer_message_label.grid(row=len(self.hospitals) + 2, column=0, columnspan=2, pady=5)
+
+        # Simulate button
+        simulate_button = tk.Button(self.root, text="Simulate Supply Chain", command=self.simulate_supply, font=("Helvetica", 12))
+        simulate_button.grid(row=len(self.hospitals) + 3, column=0, columnspan=2, pady=20)
+
+        # Instantiate logistics with update_transfer_message as a callback
+        self.logistics = Logistics(update_callback=self.update_transfer_message)
+
+    def update_transfer_message(self, message):
+        self.transfer_message_label.config(text=message)
+
+    def simulate_supply(self):
+        ai_supply_decision(self.hospitals, self.suppliers, self.logistics)
+
+        # Check if all hospitals have enough stock after the simulation
+        insufficient_hospitals = check_hospitals_stock(self.hospitals)
+
+        # Show result screen after simulation
+        if insufficient_hospitals:
+            self.show_insufficient_stock_screen(insufficient_hospitals)
         else:
-            raise ValueError("Ongeldige keuze voor veranderingstype")
+            messagebox.showinfo("Simulation Complete", "All hospitals are sufficiently supplied.")
 
-        df, total_co2 = calculate_co2_emission(df)
+    def show_insufficient_stock_screen(self, insufficient_hospitals):
+        insufficient_hospitals_text = "Some hospitals do not have enough stock for the following products:\n"
+        for hospital, missing_products in insufficient_hospitals:
+            insufficient_hospitals_text += f"\n{hospital.name} needs:\n"
+            for product, amount in missing_products:
+                insufficient_hospitals_text += f"- {product}: {amount} units\n"
 
-        if step == 2:
-            window.destroy()
-            step3_window()
+        # Display message box for missing products
+        messagebox.showwarning("Insufficient Stock", insufficient_hospitals_text)
 
-    except Exception as e:
-        messagebox.showerror("Fout", f"Er is een fout opgetreden: {e}")
 
-# Stap 1 - Kies verstoring
-def step1_window():
-    global df, root
-    df = load_data()  
-    if df is None:
-        return
+# Load hospital data from CSV
+def load_hospitals():
+    hospitals = []
+    with open(r'C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\Hospitals.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            # Adjusting column names to match your CSV file
+            name = row['name']
+            inventory = {
+                'A': int(row['stock_A']),  # Using 'stock_A' from the CSV
+                'B': int(row['stock_B'])   # Using 'stock_B' from the CSV
+            }
+            min_inventory = {
+                'A': int(row['min_stock_A']),  # Using 'min_stock_A' from the CSV
+                'B': int(row['min_stock_B'])   # Using 'min_stock_B' from the CSV
+            }
+            coordinates = row['coordinates']  # You can use this for future enhancements
+            hospitals.append(Hospital(name, inventory, min_inventory, coordinates))
+    return hospitals
+
+
+# Load supplier data from CSV
+def load_suppliers():
+    suppliers = []
+    with open(r'C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\Suppliers.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            name = row['name']
+            inventory = {
+                'A': int(row['stock_A']),  # Use 'stock_A' from the CSV
+                'B': int(row['stock_B'])   # Use 'stock_B' from the CSV
+            }
+            suppliers.append(Supplier(name, inventory))
+    return suppliers
+
+
+class Hospital:
+    def __init__(self, name, inventory, min_inventory, coordinates):
+        self.name = name
+        self.inventory = inventory
+        self.min_inventory = min_inventory
+        self.coordinates = coordinates  # Store the coordinates for future use
+
+    def needs_supply(self):
+        for product, amount in self.inventory.items():
+            if amount < self.min_inventory.get(product, 0):
+                return True
+        return False
+
+    def request_supply(self):
+        needed_items = []
+        for product, amount in self.inventory.items():
+            if amount < self.min_inventory.get(product, 0):
+                needed_items.append((product, self.min_inventory.get(product) - amount))
+        return needed_items
+
+
+class Supplier:
+    def __init__(self, name, inventory):
+        self.name = name
+        self.inventory = inventory
+
+    def can_supply(self, required_items):
+        for product, amount in required_items:
+            if self.inventory.get(product, 0) < amount:
+                return False
+        return True
+
+    def supply(self, required_items):
+        for product, amount in required_items:
+            if self.inventory.get(product, 0) >= amount:
+                self.inventory[product] -= amount
+
+
+class Logistics:
+    def __init__(self, update_callback):
+        self.update_callback = update_callback  # Callback function to update GUI
+
+    def transfer(self, from_entity, to_entity, product, amount):
+        # Instead of printing, update the GUI
+        transfer_message = f"Transferring {amount} of {product} from {from_entity} to {to_entity}."
+        self.update_callback(transfer_message)
+
+
+def ai_supply_decision(hospitals, suppliers, logistics):
+    for hospital in hospitals:
+        if hospital.needs_supply():
+            required_items = hospital.request_supply()
+            for supplier in suppliers:
+                if supplier.can_supply(required_items):
+                    for product, amount in required_items:
+                        logistics.transfer(supplier.name, hospital.name, product, amount)
+                        supplier.supply(required_items)
+                    break
+
+
+def check_hospitals_stock(hospitals):
+    insufficient_hospitals = []
+    for hospital in hospitals:
+        missing_products = []
+        for product, min_amount in hospital.min_inventory.items():
+            if hospital.inventory.get(product, 0) < min_amount:
+                missing_products.append((product, min_amount - hospital.inventory.get(product, 0)))
+        
+        if missing_products:
+            insufficient_hospitals.append((hospital, missing_products))
     
+    return insufficient_hospitals
+
+
+# Main
+def main():
     root = tk.Tk()
-    root.title("Stap 1: Kies wat er fout gaat")
-    root.protocol("WM_DELETE_WINDOW", on_closing)
 
-    tk.Label(root, text="Kies wat er fout gaat:").pack()
+    # Create home screen
+    home_screen = HomeScreen(root, switch_to_simulation_screen_callback=lambda: SupplyChainSimulation(root))
 
-    change_var = tk.StringVar()
-    change_var.set("Voorraad") 
-    tk.Radiobutton(root, text="Voorraad", variable=change_var, value="Voorraad").pack()
-    tk.Radiobutton(root, text="Kosten", variable=change_var, value="Kosten").pack()
-    tk.Radiobutton(root, text="CO2-uitstoot", variable=change_var, value="CO2").pack()
-
-    def next_step():
-        change_type = change_var.get()
-        root.destroy()
-        step2_window(change_type)
-
-    tk.Button(root, text="Volgende", command=next_step).pack()
     root.mainloop()
 
-# Stap 2 - Berekening uitvoeren
-def step2_window(change_type):
-    window = tk.Tk()
-    window.title(f"Stap 2: {change_type} berekening")
-    window.protocol("WM_DELETE_WINDOW", on_closing)
-
-    tk.Label(window, text=f"Voer product en verstoringsfactor in voor {change_type}:").pack()
-
-    tk.Label(window, text="Kies een product:").pack()
-    product_entry = tk.Entry(window)
-    product_entry.pack()
-
-    tk.Label(window, text="Verstoringsfactor (bijv. 0.8 voor 80%):").pack()
-    factor_entry = tk.Entry(window)
-    factor_entry.pack()
-
-    def next_step():
-        product = product_entry.get()
-        try:
-            factor = float(factor_entry.get())
-            apply_changes(window, 2, product, factor, change_type)
-        except ValueError:
-            messagebox.showerror("Fout", "Voer een geldig getal in voor de verstoringsfactor.")
-
-    tk.Button(window, text="Toepassen", command=next_step).pack()
-    window.mainloop()
-
-# Stap 3 - Gevolgen tonen
-def step3_window():
-    window = tk.Tk()
-    window.title("Stap 3: Gevolgen van de verstoring")
-    window.protocol("WM_DELETE_WINDOW", on_closing)
-
-    tk.Label(window, text="Hier is de trend van de gevolgen van de verstoring:").pack()
-    visualize_trends(df, window)
-
-    tk.Button(window, text="Begin opnieuw", command=lambda: restart_simulation(window)).pack()
-    window.mainloop()
-
-# Herstart de simulatie
-def restart_simulation(window):
-    global df
-    df = None
-    window.quit()
-    window.destroy()
-    step1_window()
-
-# Start de simulatie
-step1_window()
+if __name__ == "__main__":
+    main()
