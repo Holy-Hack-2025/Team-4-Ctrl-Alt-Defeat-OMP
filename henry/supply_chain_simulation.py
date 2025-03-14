@@ -13,10 +13,11 @@ class SupplyChainSimulation:
         self.return_button = None  
         self.solutions_label = None
 
-    def create_simulation_screen(self):
+    def create_simulation_screen(self, data):
         """Create the simulation screen content."""
         self.simulation_frame = tk.Frame(self.frame)
         self.simulation_frame.grid(row=0, column=0, sticky="nsew")
+        self.datamode = data
 
         # Configure grid to make sure it fills the whole window
         self.simulation_frame.grid_rowconfigure(0, weight=0)  # Title row, fixed size
@@ -187,7 +188,7 @@ class Supplier:
         return self.inventory.get(product, 0)
 
 # Load hospitals
-def load_hospitals(filename=r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Hospitals.csv"):
+def load_hospitals(filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\henry\other_required_files\Hospitals.csv"):
     """Load hospital data from a CSV file with support for multiple products dynamically."""
     hospitals = []
     try:
@@ -216,7 +217,7 @@ def load_hospitals(filename=r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\oth
 
 
 # Load suppliers
-def load_suppliers(filename=r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Suppliers.csv"):
+def load_suppliers(filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\henry\other_required_files\Suppliers.csv"):
     """Load supplier data from a CSV file."""
     suppliers = []
     try:
