@@ -1,6 +1,5 @@
 
 import tkinter as tk
-from tkinter import ttk
 
 class HomeScreen:
     def __init__(self, root, show_simulation_content_callback):
@@ -10,12 +9,10 @@ class HomeScreen:
     def create_home_screen(self):
         self.home_frame = tk.Frame(self.root)
         self.home_frame.grid(row=0, column=0, padx=10, pady=20, sticky="nsew")
-        self.home_frame.configure(background="white")
 
         # Title - Centered
         title_label = tk.Label(self.home_frame, text="Welcome to the Healthcare Supply Chain Simulation", font=("Helvetica", 16, "bold"))
         title_label.grid(row=0, column=0, padx=10, pady=20, columnspan=2, sticky="nsew")
-        title_label.configure(background="white")
 
         # Description - Centered
         description_text = (
@@ -24,7 +21,6 @@ class HomeScreen:
         )
         description_label = tk.Label(self.home_frame, text=description_text, font=("Helvetica", 12), justify="center", wraplength=400)
         description_label.grid(row=1, column=0, padx=10, pady=20, columnspan=2, sticky="nsew")
-        description_label.configure(background="white")
 
         # Start Simulation button - Smaller size
         start_button = tk.Button(self.home_frame, text="Start Simulation", command=self.show_simulation_content_callback, font=("Helvetica", 12), width=15, height=2)

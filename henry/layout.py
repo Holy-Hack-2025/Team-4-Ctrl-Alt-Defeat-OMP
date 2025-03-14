@@ -6,8 +6,6 @@ class Layout:
     def __init__(self, root):
         self.root = root
         self.root.geometry("1200x800")  # Make the window larger (800x600)
-        self.root.configure(background="white")
-        self.root.title("Healthcare Supply Chain Simulation")
         
         # Initialize frames for home and simulation
         self.home_screen = HomeScreen(self.root, self.show_simulation_content)
