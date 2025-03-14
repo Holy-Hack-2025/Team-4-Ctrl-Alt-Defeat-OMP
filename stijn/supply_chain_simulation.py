@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 from grafs import GraphGenerator  # Zorg ervoor dat deze import goed is
 from tkinter import messagebox
 from home_screen import HomeScreen
@@ -12,7 +13,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 class SupplyChainSimulation:
     def __init__(self, frame):
         self.frame = frame
-        self.hospitals = load_hospitals()  # Assuming this loads the hospitals
+        self.hospitals = load_hospitals("normal")  # Assuming this loads the hospitals
         self.suppliers = load_suppliers()  # Assuming this loads the suppliers
         self.simulation_result_label = None
         self.return_button = None
@@ -70,9 +71,12 @@ class SupplyChainSimulation:
         simulate_button = tk.Button(self.simulation_frame, text="Simulate Supply Chain", command=self.simulate_supply, font=("Helvetica", 12))
         simulate_button.grid(row=3, column=1, pady=20, sticky="nsew")
 
+        self.create_output_file_button = tk.Button(self.simulation_frame, text="Create Output File", command=self.create_output_file, font=("Helvetica", 12))
+        self.create_output_file_button.grid(row=4, column=2, pady=20, sticky="nsew")
+
         # Return Button in the center, below simulate button
         self.return_button = None
-        self.show_return_button()  # Show the return button
+        self.show_return_button()  # Show the return buttons
 
         # Label for simulation result (for problems)
         self.problems_label = tk.Label(self.left_frame, text="Problems:", font=("Helvetica", 12, "bold"))
@@ -83,7 +87,13 @@ class SupplyChainSimulation:
         self.solutions_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
         self.frame.protocol("WM_DELETE_WINDOW", self.on_close)
-        
+    
+    def create_output_file(self):
+        """Create an output file with the simulation results."""
+        filename = "simulation_results.txt"
+        with open("output.txt", "w", encoding="utf-8") as file:
+            file.write("\n".join(map(str, self.solutions)))
+
     def on_close(self):
         """Handle the window close event to cleanly exit the program."""
         print("Closing the application...")
@@ -165,7 +175,8 @@ class SupplyChainSimulation:
 
     def return_to_main_screen(self):
         """Return to the home screen and refresh the simulation content."""
-        self.hospitals = load_hospitals()  # Reload hospital data
+        self.number_times_pressed = 0
+        self.hospitals = load_hospitals(self.datamode)  # Reload hospital data
         self.suppliers = load_suppliers()
         self.simulation_result_label = None
         self.return_button = None
@@ -176,7 +187,7 @@ class SupplyChainSimulation:
 
     def return_to_home(self):
         """Return to the home screen and refresh the simulation content."""
-        self.hospitals = load_hospitals()  # Reload hospital data
+        self.hospitals = load_hospitals(self.datamode)  # Reload hospital data
         self.suppliers = load_suppliers()
         self.simulation_result_label = None
         self.return_button = None
@@ -216,9 +227,9 @@ class SupplyChainSimulation:
         min_inventory_levels = {hospital.name: hospital.min_inventory for hospital in self.hospitals}
 
         # Populate solutions (right list)
-        solutions = resolve_shortages_with_minimum_distance(insufficient_hospitals, self.hospitals, self.suppliers, min_inventory_levels)
+        self.solutions = resolve_shortages_with_minimum_distance(insufficient_hospitals, self.hospitals, self.suppliers, min_inventory_levels)
         row = 1  # Start adding solutions below the header
-        for solution in solutions:
+        for solution in self.solutions:
             solution_label = tk.Label(self.right_frame, text=solution, font=("Helvetica", 10), justify="left")
             solution_label.grid(row=row, column=0, padx=10, pady=5, sticky="w")
             row += 1  # Increment row for the next solution
