@@ -176,15 +176,29 @@ class HomeScreen:
         tree.bind("<Double-1>", update_cell)  # Bind double-click to edit cells
 
         def update_csv():
-            """Updates the CSV with modified values."""
+            """Updates the CSV with modified values, preserving unchanged data."""
             updated_data = []
+            
+            # Extract modified data from the table
             for row in tree.get_children():
                 values = tree.item(row)["values"]
                 updated_data.append(values)
 
+            # Convert updated data into a DataFrame
             new_df = pd.DataFrame(updated_data, columns=columns)
-            new_df.to_csv("hypo.csv", index=False)
-            messagebox.showinfo("Success", "Data saved successfully to hypo.csv")
+
+            # Merge updated data back into the original dataset
+            self.data.set_index("name", inplace=True)  # Assuming "name" is the unique identifier
+            new_df.set_index("name", inplace=True)
+
+            self.data.update(new_df)  # Update only the modified rows
+
+            # Reset index before saving
+            self.data.reset_index(inplace=True)
+
+            # Save the full dataset to CSV
+            self.data.to_csv(self.file_path, index=False)
+            messagebox.showinfo("Success", f"Data saved successfully to {self.file_path}")
             edit_win.destroy()
 
         save_btn = tk.Button(edit_win, text="Save Changes", command=update_csv, font=("Arial", 12),

@@ -1,2 +1,4 @@
 name,stock_A,stock_B,stock_C,stock_D,stock_E,min_stock_A,min_stock_B,min_stock_C,min_stock_D,min_stock_E,coordinates
-AZ Damiaan Oostende,150,120,90,250,60,80,100,80,200,40,"51.2155, 2.9189"
+UZ Gent,200,150,100,300,50,100,100,80,200,30,"51.0543, 3.7174"
+AZ Sint-Lucas Gent,50,150,80,250,60,200,100,100,200,50,"51.2194, 3.7252"
+AZ Jan Palfijn Gent,120,90,110,280,40,80,60,90,250,30,"51.0547, 3.7216"
