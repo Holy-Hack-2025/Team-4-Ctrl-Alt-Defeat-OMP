@@ -1,6 +1,7 @@
 import tkinter as tk
 from home_screen import HomeScreen
 import csv
+from math import radians, sin, cos, sqrt, atan2
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -11,6 +12,7 @@ class SupplyChainSimulation:
         self.suppliers = load_suppliers()
         self.simulation_result_label = None  
         self.return_button = None  
+        self.solutions_label = None
         self.canvas = None  # To store the Matplotlib canvas
         self.selected_hospital = tk.StringVar()
 
@@ -90,6 +92,24 @@ class SupplyChainSimulation:
         
         self.simulation_result_label.config(text=insufficient_hospitals_text, fg="red")
 
+        # Get solutions and print them for debugging
+        solutions = resolve_shortages_with_distance(insufficient_hospitals, self.hospitals, self.suppliers)
+        
+        # Debugging: Print the solutions list
+        print("Solutions found:", solutions)
+        
+        solutions_text = "Solutions:\n"
+        for solution in solutions:
+            solutions_text += f"{solution}\n"
+        
+        # Check if the label already exists
+        if not self.solutions_label:
+            self.solutions_label = tk.Label(self.simulation_frame, text=solutions_text, font=("Helvetica", 10), justify="left")
+            self.solutions_label.grid(row=len(self.hospitals) + 6, column=1, sticky="nsew", padx=10, pady=10)
+
+        self.show_return_button()
+
+
     def show_return_button(self):
         """Show the return button to go back to the home screen."""
         if not self.return_button:
@@ -98,6 +118,8 @@ class SupplyChainSimulation:
 
     def return_to_home(self):
         """Return to the home screen and refresh the simulation content."""
+        self.hospitals = load_hospitals()  # Reload hospital data
+        self.suppliers = load_suppliers()
         if self.canvas:
             self.canvas.get_tk_widget().destroy()
         self.simulation_result_label = None

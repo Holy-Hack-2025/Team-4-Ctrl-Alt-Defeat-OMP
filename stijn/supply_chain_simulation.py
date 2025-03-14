@@ -17,39 +17,74 @@ class SupplyChainSimulation:
         self.simulation_frame = tk.Frame(self.frame)
         self.simulation_frame.grid(row=0, column=0, sticky="nsew")
 
+        # Configure grid to make sure it fills the whole window
+        self.simulation_frame.grid_rowconfigure(0, weight=0)  # Title row, fixed size
+        self.simulation_frame.grid_rowconfigure(1, weight=0)  # Hospital selector row, fixed size
+        self.simulation_frame.grid_rowconfigure(2, weight=1)  # Middle row for problems and solutions, expandable
+        self.simulation_frame.grid_rowconfigure(3, weight=0)  # Simulate button row, fixed size
+        self.simulation_frame.grid_rowconfigure(4, weight=0)  # Return button row, fixed size
+
+        self.simulation_frame.grid_columnconfigure(0, weight=1)  # Left column (problems), expandable
+        self.simulation_frame.grid_columnconfigure(1, weight=1)  # Middle column (simulator button), expandable
+        self.simulation_frame.grid_columnconfigure(2, weight=1)  # Right column (solutions), expandable
+
         # Title Label
         title_label = tk.Label(self.simulation_frame, text="Supply Chain Simulation", font=("Helvetica", 16, "bold"))
-        title_label.grid(row=0, column=0, columnspan=2, pady=10)
+        title_label.grid(row=0, column=0, columnspan=3, pady=10, sticky="nsew")
 
-        # Labels for hospitals and suppliers
-        self.hospital_labels = []
-        self.supplier_labels = []
+        # Create a hospital selector dropdown
+        self.hospital_selector_label = tk.Label(self.simulation_frame, text="Select Hospital:", font=("Helvetica", 12))
+        self.hospital_selector_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
-        # Create hospital inventory labels
-        tk.Label(self.simulation_frame, text="Hospital Inventory", font=("Helvetica", 12)).grid(row=1, column=0, padx=10, pady=5)
-        for idx, hospital in enumerate(self.hospitals):
-            label = tk.Label(self.simulation_frame, text=f"{hospital.name}: A = {hospital.inventory['A']}, B = {hospital.inventory['B']}")
-            label.grid(row=idx + 2, column=0, padx=10, pady=5)
-            self.hospital_labels.append([label])
+        # Populate dropdown with hospital names
+        self.hospital_selector = tk.StringVar()
+        hospital_names = [hospital.name for hospital in self.hospitals]
+        self.hospital_selector.set(hospital_names[0])  # Set default to the first hospital
+        hospital_dropdown = tk.OptionMenu(self.simulation_frame, self.hospital_selector, *hospital_names)
+        hospital_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
-        # Create supplier inventory labels
-        tk.Label(self.simulation_frame, text="Supplier Inventory", font=("Helvetica", 12)).grid(row=1, column=1, padx=10, pady=5)
-        for idx, supplier in enumerate(self.suppliers):
-            label = tk.Label(self.simulation_frame, text=f"{supplier.name}: A = {supplier.inventory['A']}, B = {supplier.inventory['B']}")
-            label.grid(row=idx + 2, column=1, padx=10, pady=5)
-            self.supplier_labels.append([label])
+        # Left and Right frames for the problems and solutions with borders
+        self.left_frame = tk.Frame(self.simulation_frame, relief="solid", bd=2)  # Add border
+        self.left_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
 
-        # Simulate button
+        self.right_frame = tk.Frame(self.simulation_frame, relief="solid", bd=2)  # Add border
+        self.right_frame.grid(row=2, column=2, padx=10, pady=10, sticky="nsew")
+
+        # Header for Problems Section
+        self.problems_header = tk.Label(self.left_frame, text="Problems", font=("Helvetica", 14, "bold"))
+        self.problems_header.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+        # Header for Solutions Section
+        self.solutions_header = tk.Label(self.right_frame, text="Solutions", font=("Helvetica", 14, "bold"))
+        self.solutions_header.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+        # Simulate supply chain button (moved to middle bottom)
         simulate_button = tk.Button(self.simulation_frame, text="Simulate Supply Chain", command=self.simulate_supply, font=("Helvetica", 12))
-        simulate_button.grid(row=len(self.hospitals) + 3, column=0, columnspan=2, pady=20)
+        simulate_button.grid(row=3, column=1, pady=20, sticky="nsew")
 
-        # Label for simulation result
-        self.simulation_result_label = tk.Label(self.simulation_frame, text="", font=("Helvetica", 12), fg="red", justify="left", wraplength=500)
-        self.simulation_result_label.grid(row=len(self.hospitals) + 4, column=0, columnspan=2, padx=10, pady=10)
+        # Return Button in the center, below simulate button
+        self.return_button = None
+        self.show_return_button()  # Show the return button
+
+        # Label for simulation result (for problems)
+        self.problems_label = tk.Label(self.left_frame, text="Problems:", font=("Helvetica", 12, "bold"))
+        self.problems_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+
+        # Label for solutions (on the right)
+        self.solutions_label = tk.Label(self.right_frame, text="Solutions:", font=("Helvetica", 12, "bold"))
+        self.solutions_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+
 
     def simulate_supply(self):
-        """Check hospital stock without transferring supplies."""
+        """Check hospital stock and simulate supply chain."""
         insufficient_hospitals = check_hospitals_stock(self.hospitals)
+
+        # Clear previous labels in the left and right frames
+        for widget in self.left_frame.winfo_children():
+            widget.destroy()
+
+        for widget in self.right_frame.winfo_children():
+            widget.destroy()
 
         if insufficient_hospitals:
             self.show_insufficient_stock_screen(insufficient_hospitals)
@@ -59,38 +94,37 @@ class SupplyChainSimulation:
         self.show_return_button()
 
     def show_insufficient_stock_screen(self, insufficient_hospitals):
-        """Show the message for insufficient stock in the same window."""
-        insufficient_hospitals_text = "Some hospitals do not have enough stock:\n"
-        for hospital, missing_products in insufficient_hospitals:
-            insufficient_hospitals_text += f"\n{hospital.name} needs:\n"
-            for product, amount in missing_products:
-                insufficient_hospitals_text += f"- {product}: {amount} units\n"
-        
-        self.simulation_result_label.config(text=insufficient_hospitals_text, fg="red")
+        """Show the message for insufficient stock in the left frame."""
+        # Populate problems (left list)
+        problems_text = "Some hospitals do not have enough stock:\n"
+        problem_labels = []
 
-        # Get solutions and print them for debugging
+        for hospital, missing_products in insufficient_hospitals:
+            problems_text += f"\n{hospital.name} needs:\n"
+            for product, amount in missing_products:
+                problems_text += f"- {product}: {amount} units\n"
+            problem_label = tk.Label(self.left_frame, text=problems_text, font=("Helvetica", 10), justify="left")
+            problem_label.grid(row=len(problem_labels) + 1, column=0, padx=10, pady=5, sticky="w")
+            problem_labels.append(problem_label)
+
+        # Populate solutions (right list)
         solutions = resolve_shortages_with_distance(insufficient_hospitals, self.hospitals, self.suppliers)
-        
-        # Debugging: Print the solutions list
-        print("Solutions found:", solutions)
-        
         solutions_text = "Solutions:\n"
+        solution_labels = []
+
         for solution in solutions:
             solutions_text += f"{solution}\n"
-        
-        # Check if the label already exists
-        if not self.solutions_label:
-            self.solutions_label = tk.Label(self.simulation_frame, text=solutions_text, font=("Helvetica", 10), justify="left")
-            self.solutions_label.grid(row=len(self.hospitals) + 6, column=1, sticky="nsew", padx=10, pady=10)
+            solution_label = tk.Label(self.right_frame, text=solution, font=("Helvetica", 10), justify="left")
+            solution_label.grid(row=len(solution_labels) + 1, column=0, padx=10, pady=5, sticky="w")
+            solution_labels.append(solution_label)
 
-        self.show_return_button()
-
+        self.simulation_result_label.config(text=solutions_text, fg="green")
 
     def show_return_button(self):
         """Show the return button to go back to the home screen."""
         if not self.return_button:
             self.return_button = tk.Button(self.simulation_frame, text="Return to Home", command=self.return_to_home, font=("Helvetica", 12))
-            self.return_button.grid(row=len(self.hospitals) + 5, column=0, columnspan=2, pady=20)
+            self.return_button.grid(row=4, column=1, pady=20, sticky="nsew")
 
     def return_to_home(self):
         """Return to the home screen and refresh the simulation content."""
@@ -98,10 +132,11 @@ class SupplyChainSimulation:
         self.suppliers = load_suppliers()
         self.simulation_result_label = None
         self.return_button = None
-        self.solutions_label = None  # Verwijder de oplossingen als je terugkeert naar de home screen
+        self.solutions_label = None  # Remove solutions when going back
         self.simulation_frame.destroy()
         home_screen = HomeScreen(self.frame, self.create_simulation_screen)
         home_screen.create_home_screen()
+
 
 
 class Hospital:
