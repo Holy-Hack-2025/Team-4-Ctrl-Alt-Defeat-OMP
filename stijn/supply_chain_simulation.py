@@ -12,7 +12,7 @@ class SupplyChainSimulation:
     def create_simulation_screen(self):
         """Create the simulation screen content."""
         self.simulation_frame = tk.Frame(self.frame)
-        self.simulation_frame.pack()
+        self.simulation_frame.grid(row=0, column=0, sticky="nsew")
 
         # Create the centered label for the title
         title_label = tk.Label(self.simulation_frame, text="Supply Chain Simulation", font=("Helvetica", 16, "bold"))
@@ -86,10 +86,9 @@ class SupplyChainSimulation:
 
     def return_to_home(self):
         """Return to the home screen and refresh the simulation content."""
-        self.destroy_simulation_screen()
         self.simulation_result_label = None
         self.return_button = None
-
+        self.simulation_frame.destroy()
         # Create an instance of HomeScreen and show it
         home_screen = HomeScreen(self.frame, self.create_simulation_screen)  # Pass the callback function to HomeScreen
         home_screen.create_home_screen()
