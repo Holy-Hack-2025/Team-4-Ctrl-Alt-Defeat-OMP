@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Healthcare Supply Chain</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ddd;
+      }
+      button {
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Healthcare Supply Chain System</h1>
+      <p>
+        Simulate the supply and distribution of medicines between hospitals and
+        suppliers.
+      </p>
+
+      <button onclick="simulateSupply()">Simulate Supply Chain</button>
+
+      <h2>Hospital Inventory</h2>
+      <table id="hospital-table">
+        <tr>
+          <th>Hospital</th>
+          <th>Product A</th>
+          <th>Product B</th>
+        </tr>
+      </table>
+
+      <h2>Supplier Inventory</h2>
+      <table id="supplier-table">
+        <tr>
+          <th>Supplier</th>
+          <th>Product A</th>
+          <th>Product B</th>
+        </tr>
+      </table>
+    </div>
+
+    <script>
+      function simulateSupply() {
+        fetch("/simulate_supply", {
+          method: "POST",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            const hospitalTable = document.getElementById("hospital-table");
+            const supplierTable = document.getElementById("supplier-table");
+
+            // Clear existing rows
+            hospitalTable.innerHTML =
+              "<tr><th>Hospital</th><th>Product A</th><th>Product B</th></tr>";
+            supplierTable.innerHTML =
+              "<tr><th>Supplier</th><th>Product A</th><th>Product B</th></tr>";
+
+            // Update hospitals
+            for (const [hospitalName, inventory] of Object.entries(
+              data.hospital_data
+            )) {
+              const row = hospitalTable.insertRow();
+              row.innerHTML = `<td>${hospitalName}</td><td>${inventory.A}</td><td>${inventory.B}</td>`;
+            }
+
+            // Update suppliers
+            for (const [supplierName, inventory] of Object.entries(
+              data.supplier_data
+            )) {
+              const row = supplierTable.insertRow();
+              row.innerHTML = `<td>${supplierName}</td><td>${inventory.A}</td><td>${inventory.B}</td>`;
+            }
+          });
+      }
+    </script>
+  </body>
+</html>
