@@ -18,11 +18,14 @@ class SupplyChainSimulation:
         self.return_button = None
         self.solutions_label = None
         self.graph_frame = None  # To hold the graph
+        self.number_times_pressed = 0
 
-    def create_simulation_screen(self):
+    def create_simulation_screen(self, data):
         """Create the simulation screen content."""
         self.simulation_frame = tk.Frame(self.frame)
         self.simulation_frame.grid(row=0, column=0, sticky="nsew")
+        self.datamode = data
+
 
         # Configure grid to make sure it fills the whole window
         self.simulation_frame.grid_rowconfigure(0, weight=0)  # Title row, fixed size
@@ -138,21 +141,22 @@ class SupplyChainSimulation:
 
     def simulate_supply(self):
         """Check hospital stock and simulate supply chain."""
-        insufficient_hospitals = check_hospitals_stock(self.hospitals)
+        if self.number_times_pressed == 0:
+            insufficient_hospitals = check_hospitals_stock(self.hospitals)
 
-        # Clear previous labels in the left and right frames
-        for widget in self.left_frame.winfo_children():
-            widget.destroy()
+            # Clear previous labels in the left and right frames
+            for widget in self.left_frame.winfo_children():
+                widget.destroy()
 
-        for widget in self.right_frame.winfo_children():
-            widget.destroy()
+            for widget in self.right_frame.winfo_children():
+                widget.destroy()
 
-        if insufficient_hospitals:
-            self.show_insufficient_stock_screen(insufficient_hospitals)
-        else:
-            self.simulation_result_label.config(text="All hospitals are sufficiently supplied.", fg="green")
-
-        self.show_return_button()
+            if insufficient_hospitals:
+                self.show_insufficient_stock_screen(insufficient_hospitals)
+            else:
+                self.simulation_result_label.config(text="All hospitals are sufficiently supplied.", fg="green")
+            self.number_times_pressed += 1
+            self.show_return_button()
 
     def show_return_button(self):
         """Show the return button."""
@@ -160,10 +164,15 @@ class SupplyChainSimulation:
         self.return_button.grid(row=4, column=1, pady=10, sticky="nsew")
 
     def return_to_main_screen(self):
-        """Return to the main screen."""
-        print("Returning to the main screen...")
-        # Implement the logic to go back to the main screen here.
-        pass
+        """Return to the home screen and refresh the simulation content."""
+        self.hospitals = load_hospitals()  # Reload hospital data
+        self.suppliers = load_suppliers()
+        self.simulation_result_label = None
+        self.return_button = None
+        self.solutions_label = None  # Remove solutions when going back
+        self.simulation_frame.destroy()
+        home_screen = HomeScreen(self.frame, self.create_simulation_screen)
+        home_screen.create_home_screen()
 
     def return_to_home(self):
         """Return to the home screen and refresh the simulation content."""
@@ -261,8 +270,12 @@ class Supplier:
         return self.inventory.get(product, 0)
 
 # Load hospitals
-def load_hospitals(filename=r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Hospitals.csv"):
+def load_hospitals(is_changed):
     """Load hospital data from a CSV file with support for multiple products dynamically."""
+    if is_changed.lower() == "hypo":
+        filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\hypo.csv"
+    else:
+        filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Hospitals.csv"
     hospitals = []
     try:
         with open(filename, newline='', encoding='utf-8') as csvfile:
@@ -290,7 +303,7 @@ def load_hospitals(filename=r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\oth
 
 
 # Load suppliers
-def load_suppliers(filename=r"C:\creativity\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Suppliers.csv"):
+def load_suppliers(filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\stijn\other_required_files\Suppliers.csv"):
     """Load supplier data from a CSV file."""
     suppliers = []
     try:

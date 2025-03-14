@@ -14,8 +14,8 @@ class Layout:
     def show_home_content(self):
         self.home_screen.create_home_screen()
 
-    def show_simulation_content(self):
+    def show_simulation_content(self, data):
         # Clear home screen and show the simulation content
         for widget in self.root.winfo_children():
             widget.destroy()  # Remove all widgets from the window
-        self.simulation_screen.create_simulation_screen()  # Now show the simulation content
+        self.simulation_screen.create_simulation_screen(data)  # Now show the simulation content
