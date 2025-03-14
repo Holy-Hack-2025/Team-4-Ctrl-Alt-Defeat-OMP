@@ -1,1 +1,5 @@
 name,stock_A,stock_B,stock_C,stock_D,stock_E,min_stock_A,min_stock_B,min_stock_C,min_stock_D,min_stock_E,coordinates
+AZ Jan Palfijn Gent,120,90,110,280,40,80,60,90,250,30,"51.0547, 3.7216"
+AZ Sint-Blasius Dendermonde,50,99,60,200,30,30,30,50,180,25,"51.0333, 4.0667"
+AZ Sint-Vincentius Deinze,110,140,70,260,45,70,110,60,220,35,"50.9817, 3.5251"
+AZ Glorieux Ronse,100,80,60,200,35,70,60,50,180,25,"50.7489, 3.5997"
