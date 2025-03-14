@@ -1,42 +1,25 @@
 import sqlite3
+import random
 
-# Connect to the SQLite database
-conn = sqlite3.connect('test.db')
+# Connect to the existing database
+conn = sqlite3.connect("test.db")
 cursor = conn.cursor()
 
-# Function to insert some imaginary suppliers and items into the database
-def insert_sample_data():
-    # Insert suppliers
-    suppliers = [
-        ('Supplier A'),
-        ('Supplier B'),
-        ('Supplier C')
-    ]
-    
-    cursor.executemany('INSERT INTO Suppliers (name) VALUES (?)', [(name,) for name in suppliers])
+# Generate random suppliers
+def generate_test_data(num_suppliers=500):
+    cursor.execute("DELETE FROM suppliers")  # Clear existing data
 
-    # Get the supplier IDs (to associate with items)
-    cursor.execute('SELECT supplier_id FROM Suppliers')
-    supplier_ids = cursor.fetchall()
+    for _ in range(num_suppliers):
+        name = f"Supplier_{random.randint(1000, 9999)}"
+        reliability = random.randint(50, 100)  # Reliability score (higher is better)
+        lead_time = random.randint(1, 15)  # Lead time in days
+        historical_events = random.randint(0, 10)  # Number of past issues
 
-    # Insert supplies (items delivered by each supplier)
-    supplies = [
-        (supplier_ids[0][0], 'Item 1A'),
-        (supplier_ids[0][0], 'Item 2A'),
-        (supplier_ids[1][0], 'Item 1B'),
-        (supplier_ids[1][0], 'Item 2B'),
-        (supplier_ids[2][0], 'Item 1C'),
-        (supplier_ids[2][0], 'Item 2C')
-    ]
+        cursor.execute("INSERT INTO suppliers (name, reliability, lead_time, historical_events) VALUES (?, ?, ?, ?)", 
+                       (name, reliability, lead_time, historical_events))
 
-    cursor.executemany('INSERT INTO Supplies (supplier_id, item_name) VALUES (?, ?)', supplies)
-
-    # Commit the changes
     conn.commit()
-    print("Sample data inserted successfully.")
+    print(f"{num_suppliers} test suppliers added successfully!")
 
-# Insert sample data into the database
-insert_sample_data()
-
-# Close the connection after inserting data
+generate_test_data()
 conn.close()
