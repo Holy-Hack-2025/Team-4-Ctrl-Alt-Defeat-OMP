@@ -1,145 +1,103 @@
-import heapq
-from geopy.distance import geodesic
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+import pandas as pd
 
-# Step 1: Define the graph
-class Graph:
-    def __init__(self):
-        self.nodes = {}  # Stores nodes (hospitals and suppliers)
-        self.edges = {}  # Stores edges (distances)
+class CSVEditor:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("CSV Editor")
+        self.root.geometry("800x500")
 
-    def add_node(self, name, coordinates):
-        self.nodes[name] = coordinates
-        self.edges[name] = []
-
-    def add_edge(self, node1, node2):
-        distance = geodesic(self.nodes[node1], self.nodes[node2]).km
-        self.edges[node1].append((distance, node2))
-        self.edges[node2].append((distance, node1))  # Assume bidirectional
-
-    def get_neighbors(self, node):
-        return self.edges[node]
-class Hospital:
-    def __init__(self, name, inventory, min_inventory, coordinates):
-        self.name = name
-        self.inventory = inventory
-        self.min_inventory = min_inventory 
-        self.coordinates =  coordinates
-
-    def needs_supply(self):
-        return any(self.inventory[product] < self.min_inventory[product] for product in self.inventory)
-
-    def request_supply(self):
-        return [
-            (product, self.min_inventory[product] - qty) 
-            for product, qty in self.inventory.items() 
-            if qty < self.min_inventory[product]
-        ]
-# Step 2: Dijkstra's Algorithm to find the shortest path
-def dijkstra(graph, start):
-    # Priority queue to store (distance, node)
-    queue = [(0, start)]  # Distance to start is 0
-    distances = {start: 0}  # Distance to start is 0
-    previous_nodes = {start: None}  # To reconstruct the path
-
-    while queue:
-        current_distance, current_node = heapq.heappop(queue)
-
-        for distance, neighbor in graph.get_neighbors(current_node):
-            new_distance = current_distance + distance
-
-            if neighbor not in distances or new_distance < distances[neighbor]:
-                distances[neighbor] = new_distance
-                previous_nodes[neighbor] = current_node
-                heapq.heappush(queue, (new_distance, neighbor))
-
-    return distances, previous_nodes
-
-# Step 3: Function to get the shortest path
-def get_shortest_path(previous_nodes, start, end):
-    path = []
-    current_node = end
-    while current_node != start:
-        path.insert(0, current_node)
-        current_node = previous_nodes[current_node]
-    path.insert(0, start)
-    return path
-
-# Step 4: Resolve Shortages by Minimizing Distance
-def resolve_shortages_with_minimum_distance(insufficient_hospitals, hospitals, suppliers):
-    graph = Graph()
-
-    # Add hospitals and suppliers to the graph
-    for hospital in hospitals:
-        graph.add_node(hospital.name, hospital.coordinates)
-    for supplier in suppliers:
-        graph.add_node(supplier.name, supplier.coordinates)
-
-    # Add edges (distances) between all hospitals and suppliers
-    for hospital in hospitals:
-        for supplier in suppliers:
-            graph.add_edge(hospital.name, supplier.name)
-
-    # Add edges between hospitals as well
-    for hospital1 in hospitals:
-        for hospital2 in hospitals:
-            if hospital1 != hospital2:
-                graph.add_edge(hospital1.name, hospital2.name)
-
-    solutions = []
-    for hospital, shortages in insufficient_hospitals:
-        for product, shortage in shortages:
-            remaining_shortage = shortage
-
-            # Step 5: Use Dijkstra to find the shortest paths
-            distances, previous_nodes = dijkstra(graph, hospital.name)
-
-            # Step 6: Resolve the shortage with the minimum distance
-            while remaining_shortage > 0:
-                # Find the nearest supplier or donor hospital with stock available
-                nearest_supplier = None
-                nearest_distance = float('inf')
-                for supplier in suppliers:
-                    if supplier.can_supply([(product, remaining_shortage)]) and distances[supplier.name] < nearest_distance:
-                        nearest_supplier = supplier
-                        nearest_distance = distances[supplier.name]
-
-                if nearest_supplier:
-                    supply_amount = min(remaining_shortage, nearest_supplier.get_available_stock(product))
-                    nearest_supplier.supply([(product, supply_amount)])
-                    remaining_shortage -= supply_amount
-                    solutions.append(f"Supplied {supply_amount} units of {product} from {nearest_supplier.name} ({nearest_distance:.2f} km) to {hospital.name}")
-                else:
-                    break
-
-            # If the shortage still exists
-            if remaining_shortage > 0:
-                solutions.append(f"Error: {hospital.name} still has a shortage of {remaining_shortage} units of {product}. No possible solution found.")
-
-    return solutions
-class Supplier:
-    def __init__(self, name, inventory, production, coordinates):
-        self.name = name
-        self.inventory = inventory
-        self.production = production
-        self.coordinates = coordinates  
-
-    def can_supply(self, required_items):
-        return all(self.inventory.get(product, 0) >= amount for product, amount in required_items)
-
-    def supply(self, required_items):
-        for product, amount in required_items:
-            if self.inventory.get(product, 0) >= amount:
-                self.inventory[product] -= amount
+        self.csv_file = None  # Store the currently opened file
+        self.data = None  # Store the CSV data
+        
+        # UI Elements
+        self.create_widgets()
     
-    def get_available_stock(self, product):
-        """Retourneer de beschikbare voorraad voor een bepaald product."""
-        return self.inventory.get(product, 0)
+    def create_widgets(self):
+        # File Selection Button
+        btn_frame = tk.Frame(self.root)
+        btn_frame.pack(fill="x", padx=10, pady=5)
 
-# Example usage:
-hospitals = [Hospital("Hospital A",100,300, (52.3676, 4.9041)), Hospital("Hospital B",100,300, (52.3755, 4.9167))]
-suppliers = [Supplier("Supplier X",100,300, (52.3904, 4.9180)), Supplier("Supplier Y",100,300, (52.3800, 4.8900))]
-insufficient_hospitals = [(hospitals[0], [("Product A", 50)]), (hospitals[1], [("Product A", 30)])]
+        self.load_btn = tk.Button(btn_frame, text="Load CSV", command=self.load_csv)
+        self.load_btn.pack(side="left", padx=5)
 
-solutions = resolve_shortages_with_minimum_distance(insufficient_hospitals, hospitals, suppliers)
-for solution in solutions:
-    print(solution)
+        self.save_btn = tk.Button(btn_frame, text="Save CSV", command=self.save_csv, state=tk.DISABLED)
+        self.save_btn.pack(side="left", padx=5)
+
+        # Table for CSV Data
+        self.tree = ttk.Treeview(self.root, show="headings")
+        self.tree.pack(expand=True, fill="both", padx=10, pady=5)
+
+        self.tree.bind("<Double-1>", self.on_double_click)  # Make cells editable
+
+    def load_csv(self):
+        file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+        if not file_path:
+            return
+        
+        self.csv_file = file_path
+        self.data = pd.read_csv(file_path)
+
+        # Clear old table data
+        self.tree.delete(*self.tree.get_children())
+        self.tree["columns"] = list(self.data.columns)
+
+        # Setup column headings
+        for col in self.data.columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=100, anchor="center")
+
+        # Insert data into the table
+        for i, row in self.data.iterrows():
+            self.tree.insert("", "end", values=list(row))
+
+        self.save_btn.config(state=tk.NORMAL)  # Enable save button
+
+    def on_double_click(self, event):
+        """Make treeview cells editable on double-click."""
+        item = self.tree.selection()[0]  # Get selected row
+        col_id = self.tree.identify_column(event.x)  # Get clicked column
+        col_idx = int(col_id[1:]) - 1  # Convert to zero-based index
+        col_name = self.tree["columns"][col_idx]  # Get column name
+        
+        # Get current cell value
+        value = self.tree.item(item, "values")[col_idx]
+
+        # Create Entry box for editing
+        entry = tk.Entry(self.root)
+        entry.insert(0, value)
+        entry.focus()
+        entry.place(x=event.x_root - self.root.winfo_rootx(), y=event.y_root - self.root.winfo_rooty())
+
+        def save_edit():
+            new_value = entry.get()
+            row_values = list(self.tree.item(item, "values"))
+            row_values[col_idx] = new_value  # Update the selected column
+            self.tree.item(item, values=row_values)
+            entry.destroy()
+
+        entry.bind("<Return>", lambda e: save_edit())  # Save on Enter key
+        entry.bind("<FocusOut>", lambda e: save_edit())  # Save when losing focus
+
+    def save_csv(self):
+        """Save changes back to CSV."""
+        if not self.csv_file:
+            return
+        
+        # Collect data from Treeview
+        updated_data = []
+        for row in self.tree.get_children():
+            updated_data.append(self.tree.item(row)["values"])
+        
+        # Convert to DataFrame and save
+        df = pd.DataFrame(updated_data, columns=self.data.columns)
+        df.to_csv(self.csv_file, index=False)
+
+        messagebox.showinfo("Success", "CSV file saved successfully!")
+
+# Run Tkinter App
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = CSVEditor(root)
+    root.mainloop()
