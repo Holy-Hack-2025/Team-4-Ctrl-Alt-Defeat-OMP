@@ -6,8 +6,6 @@ class Layout:
     def __init__(self, root):
         self.root = root
         self.root.geometry("1200x800")  # Make the window larger (800x600)
-        self.root.configure(background="white")
-        self.root.title("Healthcare Supply Chain Simulation")
         
         # Initialize frames for home and simulation
         self.home_screen = HomeScreen(self.root, self.show_simulation_content)
@@ -16,8 +14,8 @@ class Layout:
     def show_home_content(self):
         self.home_screen.create_home_screen()
 
-    def show_simulation_content(self):
+    def show_simulation_content(self, data):
         # Clear home screen and show the simulation content
         for widget in self.root.winfo_children():
             widget.destroy()  # Remove all widgets from the window
-        self.simulation_screen.create_simulation_screen()  # Now show the simulation content
+        self.simulation_screen.create_simulation_screen(data)  # Now show the simulation content

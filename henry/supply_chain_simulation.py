@@ -13,10 +13,11 @@ class SupplyChainSimulation:
         self.return_button = None  
         self.solutions_label = None
 
-    def create_simulation_screen(self):
+    def create_simulation_screen(self, data):
         """Create the simulation screen content."""
         self.simulation_frame = tk.Frame(self.frame)
         self.simulation_frame.grid(row=0, column=0, sticky="nsew")
+        self.datamode = data
 
         # Configure grid to make sure it fills the whole window
         self.simulation_frame.grid_rowconfigure(0, weight=0)  # Title row, fixed size
@@ -106,7 +107,6 @@ class SupplyChainSimulation:
         self.solutions_header.grid(row=0, column=0, padx=10, pady=5, sticky="w")
 
         # Populate problems (left list)
-        problem_labels = []
         row = 1  # Start adding problems below the header
         for hospital, missing_products in insufficient_hospitals:
             problem_text = f"{hospital.name} needs:\n"
@@ -115,22 +115,21 @@ class SupplyChainSimulation:
             problem_label = tk.Label(self.left_frame, text=problem_text, font=("Helvetica", 10), justify="left")
             problem_label.grid(row=row, column=0, padx=10, pady=5, sticky="w")
             row += 1  # Increment row for the next problem
-            problem_labels.append(problem_label)
+
+        # Create min_inventory_levels dictionary
+        min_inventory_levels = {hospital.name: hospital.min_inventory for hospital in self.hospitals}
 
         # Populate solutions (right list)
-        solutions = resolve_shortages_with_minimum_distance(insufficient_hospitals, self.hospitals, self.suppliers)
-        solutions_text = "Solutions:\n"
-        solution_labels = []
+        solutions = resolve_shortages_with_minimum_distance(insufficient_hospitals, self.hospitals, self.suppliers, min_inventory_levels)
         row = 1  # Start adding solutions below the header
         for solution in solutions:
-            solutions_text += f"{solution}\n"
             solution_label = tk.Label(self.right_frame, text=solution, font=("Helvetica", 10), justify="left")
             solution_label.grid(row=row, column=0, padx=10, pady=5, sticky="w")
             row += 1  # Increment row for the next solution
-            solution_labels.append(solution_label)
 
-        self.simulation_result_label = tk.Label(self.right_frame, text=solutions_text, font=("Helvetica", 10, "bold"), fg="green", justify="left")
-        self.simulation_result_label.grid(row=row+1, column=0, padx=10, pady=5, sticky="w")
+        self.simulation_result_label = tk.Label(self.right_frame, text="See solutions above.", font=("Helvetica", 10, "bold"), fg="green", justify="left")
+        self.simulation_result_label.grid(row=row + 1, column=0, padx=10, pady=5, sticky="w")
+
 
 
     def show_return_button(self):
@@ -190,22 +189,32 @@ class Supplier:
 
 # Load hospitals
 def load_hospitals(filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\henry\other_required_files\Hospitals.csv"):
-    """Load hospital data from a CSV file."""
+    """Load hospital data from a CSV file with support for multiple products dynamically."""
     hospitals = []
     try:
         with open(filename, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
+                # Dynamisch de producten bepalen op basis van kolomnamen
+                product_keys = [key for key in row.keys() if key.startswith("stock_")]
+                min_product_keys = [key.replace("stock_", "min_stock_") for key in product_keys]
+
+                # Inventaris en minimum voorraad dynamisch vullen
+                inventory = {key.replace("stock_", ""): int(row[key]) for key in product_keys}
+                min_inventory = {key.replace("min_stock_", ""): int(row[key]) for key in min_product_keys}
+
                 hospitals.append(Hospital(
                     name=row["name"],
-                    inventory={"A": int(row["stock_A"]), "B": int(row["stock_B"])},
-                    min_inventory={"A": int(row["min_stock_A"]), "B": int(row["min_stock_B"])},
+                    inventory=inventory,
+                    min_inventory=min_inventory,
                     coordinates=tuple(map(float, row["coordinates"].split(", ")))
                 ))
-        print(f"Loaded {len(hospitals)} hospitals successfully.")  
+
+        print(f"Loaded {len(hospitals)} hospitals successfully.")
     except FileNotFoundError:
         print(f"Error: {filename} not found.")
     return hospitals
+
 
 # Load suppliers
 def load_suppliers(filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Alt-Defeat-OMP\henry\other_required_files\Suppliers.csv"):
@@ -217,14 +226,27 @@ def load_suppliers(filename=r"C:\Users\HC\Documents\own\Holy_Hack\Team-4-Ctrl-Al
             for row in reader:
                 suppliers.append(Supplier(
                     name=row["name"],
-                    inventory={"A": int(row["stock_A"]), "B": int(row["stock_B"])},
-                    production={"A": int(row["production_A"]), "B": int(row["production_B"])},
+                    inventory={
+                        "A": int(row["stock_A"]),
+                        "B": int(row["stock_B"]),
+                        "C": int(row["stock_C"]),
+                        "D": int(row["stock_D"]),
+                        "E": int(row["stock_E"])  # Add product E to inventory
+                    },
+                    production={
+                        "A": int(row["production_A"]),
+                        "B": int(row["production_B"]),
+                        "C": int(row["production_C"]),
+                        "D": int(row["production_D"]),
+                        "E": int(row["production_E"])  # Add product E to production
+                    },
                     coordinates=tuple(map(float, row["coordinates"].split(", "))) 
                 ))
         print(f"Loaded {len(suppliers)} suppliers successfully.")  
     except FileNotFoundError:
         print(f"Error: {filename} not found.")
     return suppliers
+
 
 # Check hospital stock levels
 def check_hospitals_stock(hospitals):
@@ -273,50 +295,55 @@ def calculate_distance(coord1, coord2):
     distance = R * c  # Distance in km
     return distance
 
-def resolve_shortages_with_minimum_distance(insufficient_hospitals, hospitals, suppliers):
+def resolve_shortages_with_minimum_distance(insufficient_hospitals, hospitals, suppliers, min_inventory_levels):
     solutions = []
-    best_solution = None
-    best_distance_per_unit = float('inf')  # Start with an infinitely large distance per unit
 
     for hospital, shortages in insufficient_hospitals:
         for product, shortage in shortages:
             remaining_shortage = shortage
+            used_sources = []
+
+            # Combineer alle mogelijke leveranciers (ziekenhuizen + leveranciers)
             all_sources = []
-
-            # Combine hospitals and suppliers into one list of sources
             for source in hospitals + suppliers:
-                if source != hospital:  # Exclude the hospital itself
+                if source != hospital:  # Voorkom dat een ziekenhuis zichzelf bevoorraden kan
                     available_stock = source.inventory.get(product, 0)
-                    if available_stock > 0:
+                    min_stock = min_inventory_levels.get(source.name, {}).get(product, 0)  # Haal de minimumvoorraad op
+                    
+                    if available_stock > min_stock:  # Alleen leveren als er boven de minimumvoorraad blijft
+                        max_deliverable = available_stock - min_stock
                         distance = calculate_distance(hospital.coordinates, source.coordinates)
-                        all_sources.append((source, distance, available_stock))
+                        all_sources.append((source, distance, max_deliverable))
 
-            # Generate all combinations of sources that can satisfy the shortage
-            all_combinations = generate_combinations(all_sources, remaining_shortage)
+            # Sorteer bronnen op efficiëntie (afstand per eenheid)
+            all_sources.sort(key=lambda x: x[1] / x[2])  # Distance per unit
 
-            # Check each combination
-            for combination in all_combinations:
-                total_distance = 0
-                total_units = 0
-                for source, dist, stock in combination:
-                    supply_amount = min(stock, remaining_shortage)
-                    total_distance += dist * supply_amount
-                    total_units += supply_amount
-                    remaining_shortage -= supply_amount
-
-                # If the combination satisfies the shortage, calculate distance per unit
+            # Gebruik bronnen totdat het tekort is opgelost
+            total_distance = 0
+            for source, dist, max_stock in all_sources:
                 if remaining_shortage <= 0:
-                    distance_per_unit = total_distance / total_units if total_units > 0 else float('inf')
+                    break  # Stop als het tekort is opgelost
 
-                    if distance_per_unit < best_distance_per_unit:
-                        best_distance_per_unit = distance_per_unit
-                        best_solution = combination
+                supply_amount = min(max_stock, remaining_shortage)
 
-            # Record the best solution
-            if best_solution:
-                solutions.append(f"Best solution for {hospital.name} shortage of {product}:")
-                for source, dist, stock in best_solution:
-                    solutions.append(f"  - {source.name} supplied {min(stock, shortage)} units at {dist:.2f} km")
-                solutions.append(f"Distance per unit: {best_distance_per_unit:.2f} km per unit")
+                # Pas voorraad aan
+                source.inventory[product] -= supply_amount
+                hospital.inventory[product] += supply_amount
+
+                total_distance += dist * supply_amount
+                remaining_shortage -= supply_amount
+                used_sources.append((source, supply_amount, dist))
+
+            # Maak een oplossingstekst
+            if remaining_shortage > 0:
+                solutions.append(f"⚠️ {hospital.name} still has a shortage of {remaining_shortage} units of {product}!")
+
+            else:
+                solutions.append(f"✅ {hospital.name} shortage of {product} resolved!")
+                for source, amount, dist in used_sources:
+                    solutions.append(f"  - {source.name} supplied {amount} units at {dist:.2f} km")
+
+                avg_distance_per_unit = total_distance / shortage if shortage > 0 else 0
+                solutions.append(f"  ➡️ Average distance per unit: {avg_distance_per_unit:.2f} km/unit")
 
     return solutions
