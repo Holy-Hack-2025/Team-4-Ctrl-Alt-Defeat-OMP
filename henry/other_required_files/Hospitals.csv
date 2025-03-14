@@ -1,6 +1,11 @@
-name,stock_A,stock_B,stock_C,stock_D,min_stock_A,min_stock_B,min_stock_C,min_stock_D,coordinates
-Hospital A,200,150,200,150,100,20,100,100,"52.5, 13.4"
-Hospital B,80,20,200,150,100,100,100,100,"52.6, 13.5"
-Hospital C,200,150,200,150,100,100,100,100,"52.7, 13.6"
-Hospital D,200,150,200,150,100,100,100,100,"52.8, 13.7" 
-
+name,stock_A,stock_B,min_stock_A,min_stock_B,coordinates
+UZ Gent,200,150,100,100,"51.0543, 3.7174"
+AZ Sint-Lucas Gent,50,150,200,100,"51.2194, 3.7252"
+AZ Jan Palfijn Gent,120,90,80,60,"51.0547, 3.7216"
+AZ Maria Middelares,300,100,150,50,"51.2199, 3.7320"
+AZ Sint-Jan Brugge,90,110,100,40,"51.2089, 3.2247"
+AZ Groeninge Kortrijk,200,130,100,90,"50.8213, 3.2583"
+AZ Zeno Knokke-Heist,180,160,120,100,"51.3454, 3.2580"
+AZ Sint-Blasius Dendermonde,50,50,30,30,"51.0333, 4.0667"
+AZ Oudenaarde,250,200,100,120,"50.8497, 3.6083"
+AZ Sint-Elisabeth Zottegem,90,70,50,40,"50.9833, 3.9833"
